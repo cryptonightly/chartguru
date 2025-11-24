@@ -275,4 +275,3 @@ For issues or questions:
 2. Review the code comments
 3. Check Vercel deployment logs
 4. Verify environment variables are set correctly
-

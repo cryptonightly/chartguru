@@ -166,9 +166,144 @@ git branch
 git branch -M main
 ```
 
-### 2.7 Push to GitHub
+### 2.7 Set Up GitHub Authentication
 
-Push your code to GitHub:
+**Important**: GitHub no longer accepts passwords for Git operations. You need to use a **Personal Access Token (PAT)** instead.
+
+#### Option A: Personal Access Token (Recommended for HTTPS)
+
+1. **Create a Personal Access Token**:
+   - Go to GitHub → Click your profile picture (top right) → **Settings**
+   - Scroll down to **Developer settings** (left sidebar)
+   - Click **Personal access tokens** → **Tokens (classic)**
+   - Click **Generate new token** → **Generate new token (classic)**
+   - Configure the token:
+     - **Note**: "Spotify Stats Dashboard" (or any descriptive name)
+     - **Expiration**: Choose your preference (90 days, 1 year, or no expiration)
+     - **Scopes**: Check **`repo`** (this gives full control of private repositories)
+     - Click **Generate token** at the bottom
+   - **IMPORTANT**: Copy the token immediately (you won't see it again!)
+     - It will look like: `ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+2. **Use Token When Pushing**:
+   ```bash
+   # When prompted for password, paste your Personal Access Token instead
+   git push -u origin main
+   ```
+   
+   When Git asks:
+   - **Username**: `cryptonightly` (your GitHub username)
+   - **Password**: Paste your Personal Access Token (not your GitHub password)
+
+3. **Store Token Securely (Optional)**:
+   
+   You can configure Git to remember your credentials:
+   ```bash
+   # Store credentials (macOS)
+   git config --global credential.helper osxkeychain
+   
+   # Store credentials (Linux)
+   git config --global credential.helper store
+   
+   # Store credentials (Windows)
+   git config --global credential.helper wincred
+   ```
+   
+   After the first push with the token, Git will remember it.
+
+#### Option B: SSH Keys (Alternative, More Secure)
+
+If you prefer SSH authentication:
+
+1. **Generate SSH Key** (if you don't have one):
+   ```bash
+   ssh-keygen -t ed25519 -C "your.email@example.com"
+   # Press Enter to accept default location
+   # Optionally set a passphrase for extra security
+   ```
+
+2. **Add SSH Key to GitHub**:
+   ```bash
+   # Copy your public key
+   cat ~/.ssh/id_ed25519.pub
+   # Copy the entire output
+   ```
+   
+   - Go to GitHub → Settings → **SSH and GPG keys**
+   - Click **New SSH key**
+   - **Title**: "My Computer" (or descriptive name)
+   - **Key**: Paste your public key
+   - Click **Add SSH key**
+
+3. **Update Remote URL to SSH**:
+   ```bash
+   # Change from HTTPS to SSH
+   git remote set-url origin git@github.com:cryptonightly/chartguru.git
+   
+   # Verify
+   git remote -v
+   ```
+
+4. **Push Using SSH**:
+   ```bash
+   git push -u origin main
+   # No password/token needed with SSH!
+   ```
+
+### 2.8 Push to GitHub
+
+Before pushing, check if the remote repository has any files (like a README created on GitHub):
+
+```bash
+# Fetch remote changes to see what's there
+git fetch origin
+```
+
+**If you see "Updates were rejected" error**, the remote has files you don't have locally. Choose one:
+
+#### Option A: Merge Remote Changes (Recommended)
+
+This keeps both your local files and any files on GitHub (like README):
+
+```bash
+# Pull and merge remote changes
+git pull origin main --allow-unrelated-histories
+
+# Resolve any conflicts if they occur (usually just accept both)
+# If there are conflicts, Git will mark them. Edit files to resolve, then:
+git add .
+git commit -m "Merge remote changes"
+
+# Now push
+git push -u origin main
+```
+
+#### Option B: Rebase (Cleaner History)
+
+This replays your commits on top of remote changes:
+
+```bash
+# Pull with rebase
+git pull origin main --rebase
+
+# If conflicts occur, resolve them, then:
+git add .
+git rebase --continue
+
+# Push
+git push -u origin main
+```
+
+#### Option C: Force Push (⚠️ Use Only If Remote Has Nothing Important)
+
+**Warning**: This overwrites everything on GitHub with your local code. Only use if you're sure the remote has nothing you need.
+
+```bash
+# Force push (overwrites remote)
+git push -u origin main --force
+```
+
+**If no conflicts or errors**, simply push:
 
 ```bash
 # Push to GitHub (first time)
@@ -181,7 +316,14 @@ git push -u origin main
 - `origin`: The name of your remote repository
 - `main`: The branch you're pushing
 
-### 2.8 Verify Upload
+**If using HTTPS with Personal Access Token**:
+- When prompted for username: Enter your GitHub username (`cryptonightly`)
+- When prompted for password: Paste your Personal Access Token (not your GitHub password!)
+
+**If using SSH**:
+- No authentication prompt needed (uses your SSH key)
+
+### 2.9 Verify Upload
 
 1. **Refresh your GitHub repository page** in the browser
 2. You should see all your project files
@@ -192,7 +334,7 @@ git push -u origin main
    - `README.md`
    - `.gitignore`
 
-### 2.9 Future Updates
+### 2.10 Future Updates
 
 After making changes to your code, push updates with:
 
@@ -212,12 +354,15 @@ git push
 
 ### Troubleshooting GitHub Push Issues
 
-**Issue: "Authentication failed"**
-- **Solution**: Use a Personal Access Token instead of password
-  1. Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
-  2. Generate new token with `repo` scope
-  3. Use token as password when prompted
-  4. Or use SSH keys (more secure, recommended for long-term)
+**Issue: "Authentication failed" or "Password authentication is not supported"**
+- **This is the most common issue!** GitHub requires a Personal Access Token, not your password.
+- **Solution**: Follow **Step 2.7** above to create and use a Personal Access Token
+- **Quick fix**: 
+  1. Create token at: https://github.com/settings/tokens
+  2. Generate new token (classic) with `repo` scope
+  3. Copy the token (starts with `ghp_`)
+  4. When Git asks for password, paste the token instead
+  5. Consider using SSH keys for long-term (see Step 2.7 Option B)
 
 **Issue: "Repository not found"**
 - **Solution**: Verify the repository URL is correct
@@ -229,15 +374,80 @@ git push
   git remote set-url origin https://github.com/yourusername/correct-repo-name.git
   ```
 
-**Issue: "Updates were rejected"**
-- **Solution**: Someone else pushed changes, or you made changes on GitHub
+**Issue: "Updates were rejected because the remote contains work that you do not have locally"**
+- **Cause**: The GitHub repository has files (like README, .gitignore, or license) that you created on GitHub but don't have locally
+- **Solution**: Merge the remote changes with your local code
   ```bash
-  # Pull changes first
-  git pull origin main --rebase
+  # Option 1: Merge (keeps both histories)
+  git pull origin main --allow-unrelated-histories
+  # Resolve any conflicts, then:
+  git add .
+  git commit -m "Merge remote changes"
+  git push -u origin main
   
-  # Then push
-  git push
+  # Option 2: Rebase (cleaner history)
+  git pull origin main --rebase
+  # Resolve conflicts if any, then:
+  git add .
+  git rebase --continue
+  git push -u origin main
+  
+  # Option 3: Force push (ONLY if remote has nothing important)
+  git push -u origin main --force
   ```
+- **Prevention**: When creating a new GitHub repository, don't initialize with README, .gitignore, or license if you already have these files locally
+
+**Understanding Git Pull Strategies**
+
+When Git shows hints like:
+```
+hint:   git config pull.rebase false  # merge
+hint:   git config pull.rebase true   # rebase
+hint:   git config pull.ff only       # fast-forward only
+```
+
+These are configuration options that set the default behavior for `git pull`:
+
+1. **`git config pull.rebase false` (Merge - Default)**
+   - Creates a merge commit when pulling
+   - Preserves the complete history of both branches
+   - History shows when branches diverged and merged
+   - **Use when**: You want to preserve all history, working with teams
+   - **Example**: Your commits + remote commits = merge commit combining both
+
+2. **`git config pull.rebase true` (Rebase)**
+   - Replays your local commits on top of remote commits
+   - Creates a linear, cleaner history
+   - Your commits appear as if they were made after the remote changes
+   - **Use when**: You want a clean, linear history
+   - **Example**: Remote commits first, then your commits on top (no merge commit)
+
+3. **`git config pull.ff only` (Fast-Forward Only)**
+   - Only allows pulls that can be fast-forwarded (no divergence)
+   - Fails if your branch has diverged from remote
+   - **Use when**: You want to prevent accidental merges, prefer manual handling
+   - **Example**: Only pulls when your branch is directly behind remote (no local commits)
+
+**Which to Choose?**
+- **For beginners**: Use merge (default) - it's safer and preserves all history
+- **For cleaner history**: Use rebase - but be careful, it rewrites commit history
+- **For strict control**: Use fast-forward only - you'll need to manually handle divergences
+
+**Set Your Preference** (optional):
+```bash
+# Set default to merge (recommended for most users)
+git config pull.rebase false
+
+# Or set to rebase (if you prefer linear history)
+git config pull.rebase true
+
+# Or set to fast-forward only (strict mode)
+git config pull.ff only
+```
+
+**Note**: You can always override the default by using flags:
+- `git pull --rebase` (use rebase even if merge is default)
+- `git pull --no-rebase` (use merge even if rebase is default)
 
 **Issue: "Large files"**
 - **Solution**: Remove large files from Git history
