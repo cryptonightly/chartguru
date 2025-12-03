@@ -352,214 +352,376 @@ git commit -m "Description of your changes"
 git push
 ```
 
-### Troubleshooting GitHub Push Issues
+## Step 3: Deploy to Vercel
 
-**Issue: "Authentication failed" or "Password authentication is not supported"**
-- **This is the most common issue!** GitHub requires a Personal Access Token, not your password.
-- **Solution**: Follow **Step 2.7** above to create and use a Personal Access Token
-- **Quick fix**: 
-  1. Create token at: https://github.com/settings/tokens
-  2. Generate new token (classic) with `repo` scope
-  3. Copy the token (starts with `ghp_`)
-  4. When Git asks for password, paste the token instead
-  5. Consider using SSH keys for long-term (see Step 2.7 Option B)
+This section provides a complete, step-by-step guide to deploying your Spotify Stats Dashboard to Vercel.
 
-**Issue: "Repository not found"**
-- **Solution**: Verify the repository URL is correct
-  ```bash
-  # Check current remote
-  git remote -v
-  
-  # Update if wrong
-  git remote set-url origin https://github.com/yourusername/correct-repo-name.git
-  ```
+### 3.1 Sign In to Vercel
 
-**Issue: "Updates were rejected because the remote contains work that you do not have locally"**
-- **Cause**: The GitHub repository has files (like README, .gitignore, or license) that you created on GitHub but don't have locally
-- **Solution**: Merge the remote changes with your local code
-  ```bash
-  # Option 1: Merge (keeps both histories)
-  git pull origin main --allow-unrelated-histories
-  # Resolve any conflicts, then:
-  git add .
-  git commit -m "Merge remote changes"
-  git push -u origin main
-  
-  # Option 2: Rebase (cleaner history)
-  git pull origin main --rebase
-  # Resolve conflicts if any, then:
-  git add .
-  git rebase --continue
-  git push -u origin main
-  
-  # Option 3: Force push (ONLY if remote has nothing important)
-  git push -u origin main --force
-  ```
-- **Prevention**: When creating a new GitHub repository, don't initialize with README, .gitignore, or license if you already have these files locally
+1. Go to [vercel.com](https://vercel.com)
+2. Click **"Sign Up"** or **"Log In"** in the top right
+3. Choose **"Continue with GitHub"** (recommended - easiest integration)
+4. Authorize Vercel to access your GitHub account
+5. You'll be redirected to the Vercel dashboard
 
-**Understanding Git Pull Strategies**
+### 3.2 Import Your GitHub Repository
 
-When Git shows hints like:
+1. In the Vercel dashboard, click the **"Add New..."** button (top right)
+2. Select **"Project"** from the dropdown
+3. You'll see a list of your GitHub repositories
+4. Find and click on **"chartguru"** (or your repository name)
+5. Click **"Import"** button
+
+### 3.3 Configure Project Settings
+
+Vercel will auto-detect Next.js, but verify these settings:
+
+1. **Project Name**: 
+   - Default: `chartguru` (or your repo name)
+   - You can change it if desired
+   - This becomes part of your URL: `https://chartguru.vercel.app`
+
+2. **Framework Preset**: 
+   - Should auto-detect as **"Next.js"**
+   - If not, select it manually
+
+3. **Root Directory**: 
+   - Leave as `./` (default)
+   - Only change if your Next.js app is in a subdirectory
+
+4. **Build and Output Settings** (usually auto-filled, verify):
+   - **Build Command**: `npm run build` or `prisma generate && next build`
+   - **Output Directory**: `.next` (leave default)
+   - **Install Command**: `npm install` (leave default)
+
+5. **Environment Variables** (IMPORTANT - Add these now):
+   
+   Click **"Environment Variables"** to expand the section, then add:
+
+   **Variable 1: SPOTIFY_CLIENT_ID**
+   - Click **"Add"** or the **"+"** button
+   - **Key**: `SPOTIFY_CLIENT_ID`
+   - **Value**: Paste your Spotify Client ID (from Step 1)
+   - **Environment**: Check all three: ☑ Production, ☑ Preview, ☑ Development
+   - Click **"Add"** or **"Save"**
+
+   **Variable 2: SPOTIFY_CLIENT_SECRET**
+   - Click **"Add"** again
+   - **Key**: `SPOTIFY_CLIENT_SECRET`
+   - **Value**: Paste your Spotify Client Secret (from Step 1)
+   - **Environment**: Check all three: ☑ Production, ☑ Preview, ☑ Development
+   - Click **"Add"** or **"Save"**
+
+   **Variable 3: ADMIN_SECRET**
+   - Click **"Add"** again
+   - **Key**: `ADMIN_SECRET`
+   - **Value**: Generate a strong random string:
+     ```bash
+     # In your terminal, run:
+     openssl rand -hex 32
+     # Copy the output and paste it here
+     ```
+     Or use any strong random password (at least 32 characters recommended)
+   - **Environment**: Check all three: ☑ Production, ☑ Preview, ☑ Development
+   - Click **"Add"** or **"Save"**
+
+   **Variable 4: DATABASE_URL** (Skip for now - add after Step 5)
+   - **Leave this empty for now**
+   - We'll add it after setting up the database in Step 5
+   - The first deployment will fail, but that's expected
+
+### 3.4 Deploy the Project
+
+1. Review all settings one more time
+2. Click the **"Deploy"** button (bottom right)
+3. Vercel will:
+   - Clone your repository
+   - Install dependencies (`npm install`)
+   - Run the build command
+   - Deploy to their CDN
+
+4. **Watch the deployment logs**:
+   - You'll see real-time build output
+   - The build will likely **fail** because `DATABASE_URL` is missing
+   - This is **expected and okay** - we'll fix it after setting up the database
+
+5. **Note the deployment URL**:
+   - Even if it fails, you'll see: `https://chartguru-xxxxx.vercel.app`
+   - Save this URL for later
+
+### 3.5 Understanding the First Deployment Failure
+
+The build will fail with an error like:
 ```
-hint:   git config pull.rebase false  # merge
-hint:   git config pull.rebase true   # rebase
-hint:   git config pull.ff only       # fast-forward only
-```
-
-These are configuration options that set the default behavior for `git pull`:
-
-1. **`git config pull.rebase false` (Merge - Default)**
-   - Creates a merge commit when pulling
-   - Preserves the complete history of both branches
-   - History shows when branches diverged and merged
-   - **Use when**: You want to preserve all history, working with teams
-   - **Example**: Your commits + remote commits = merge commit combining both
-
-2. **`git config pull.rebase true` (Rebase)**
-   - Replays your local commits on top of remote commits
-   - Creates a linear, cleaner history
-   - Your commits appear as if they were made after the remote changes
-   - **Use when**: You want a clean, linear history
-   - **Example**: Remote commits first, then your commits on top (no merge commit)
-
-3. **`git config pull.ff only` (Fast-Forward Only)**
-   - Only allows pulls that can be fast-forwarded (no divergence)
-   - Fails if your branch has diverged from remote
-   - **Use when**: You want to prevent accidental merges, prefer manual handling
-   - **Example**: Only pulls when your branch is directly behind remote (no local commits)
-
-**Which to Choose?**
-- **For beginners**: Use merge (default) - it's safer and preserves all history
-- **For cleaner history**: Use rebase - but be careful, it rewrites commit history
-- **For strict control**: Use fast-forward only - you'll need to manually handle divergences
-
-**Set Your Preference** (optional):
-```bash
-# Set default to merge (recommended for most users)
-git config pull.rebase false
-
-# Or set to rebase (if you prefer linear history)
-git config pull.rebase true
-
-# Or set to fast-forward only (strict mode)
-git config pull.ff only
-```
-
-**Note**: You can always override the default by using flags:
-- `git pull --rebase` (use rebase even if merge is default)
-- `git pull --no-rebase` (use merge even if rebase is default)
-
-**Issue: "Large files"**
-- **Solution**: Remove large files from Git history
-  ```bash
-  # Remove file from Git
-  git rm --cached large-file.db
-  
-  # Add to .gitignore
-  echo "large-file.db" >> .gitignore
-  
-  # Commit
-  git commit -m "Remove large file"
-  git push
-  ```
-
-**Issue: "Branch protection"**
-- **Solution**: If main branch is protected, create a new branch:
-  ```bash
-  git checkout -b feature/your-changes
-  git push -u origin feature/your-changes
-  # Then create a Pull Request on GitHub
-  ```
-
-## Step 3: Create Vercel Project
-
-1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
-2. Click **"Add New Project"**
-3. Import your repository
-4. Configure:
-   - **Framework Preset**: Next.js (auto-detected)
-   - **Root Directory**: `./` (default)
-   - **Build Command**: `npm run build` (default)
-   - **Output Directory**: `.next` (default)
-   - **Install Command**: `npm install` (default)
-
-5. **Don't deploy yet** - we need to set environment variables first
-
-## Step 4: Set Up Environment Variables
-
-In Vercel dashboard → Your Project → **Settings** → **Environment Variables**, add:
-
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `SPOTIFY_CLIENT_ID` | Your Spotify Client ID | From Step 1 |
-| `SPOTIFY_CLIENT_SECRET` | Your Spotify Client Secret | From Step 1 |
-| `ADMIN_SECRET` | A strong random string | e.g., `openssl rand -hex 32` |
-| `DATABASE_URL` | PostgreSQL connection string | See Step 5 |
-
-**Important**: Select **"Production"**, **"Preview"**, and **"Development"** for each variable.
-
-## Step 5: Set Up Production Database
-
-For production, use PostgreSQL. Options:
-
-### Option A: Vercel Postgres (Recommended)
-
-1. In Vercel dashboard → Your Project → **Storage** tab
-2. Click **"Create Database"** → **"Postgres"**
-3. Create database
-4. Copy the connection string
-5. Add it as `DATABASE_URL` environment variable
-
-### Option B: External PostgreSQL
-
-Use services like:
-- [Supabase](https://supabase.com) (free tier available)
-- [Neon](https://neon.tech) (free tier available)
-- [Railway](https://railway.app) (free tier available)
-
-1. Create a PostgreSQL database
-2. Copy the connection string (format: `postgresql://user:password@host:5432/dbname?sslmode=require`)
-3. Add as `DATABASE_URL` in Vercel
-
-### Update Prisma Schema for PostgreSQL
-
-Before deploying, update `prisma/schema.prisma`:
-
-```prisma
-datasource db {
-  provider = "postgresql"  // Change from "sqlite"
-  url      = env("DATABASE_URL")
-}
+Error: P1001: Can't reach database server
 ```
 
-Then commit and push:
-```bash
-git add prisma/schema.prisma
-git commit -m "Update Prisma for PostgreSQL"
-git push
-```
+This is **normal** because:
+- We haven't set up the database yet
+- `DATABASE_URL` environment variable is missing
+- Prisma can't connect to the database
 
-## Step 6: Deploy
+**Don't worry** - we'll fix this in the next steps.
 
-1. In Vercel dashboard, click **"Deploy"**
-2. Wait for build to complete
-3. Your app will be live at `https://your-project.vercel.app`
+### 3.6 Access Your Project Dashboard
 
-## Step 7: Initialize Database
+After deployment (even if it failed):
 
-After first deployment:
+1. Click on your project name in the Vercel dashboard
+2. You'll see the **Project Overview** page with:
+   - Deployment history
+   - Project settings
+   - Environment variables
+   - Domains
+   - Analytics
 
-1. Go to your Vercel project → **Settings** → **Functions**
-2. Or use Vercel CLI:
-   ```bash
-   npm i -g vercel
-   vercel login
-   vercel link
-   vercel env pull .env.local
-   npx prisma db push
+**Keep this page open** - you'll need it for the next steps.
+
+## Step 4: Set Up Production Database
+
+For production, you need a PostgreSQL database. Vercel requires PostgreSQL (not SQLite) for production deployments.
+
+**Note**: Vercel doesn't offer a native Postgres database. They have a Supabase integration that provides PostgreSQL, or you can use external PostgreSQL providers.
+
+### Option A: Supabase via Vercel Integration (Easiest - Recommended)
+
+1. **In your Vercel project dashboard**:
+   - Click on the **"Storage"** tab (left sidebar)
+   - Or go to: Your Project → **Storage**
+
+2. **Create a Supabase database**:
+   - Click **"Create Database"** button
+   - You'll see **"Supabase (Postgres)"** as an option
+   - Click on it
+   - If you don't have a Supabase account, you'll be prompted to sign up
+   - Follow the prompts to create/connect your Supabase project
+   - Choose a **database name** (e.g., `spotify-stats-db`)
+   - Select a **region** (choose closest to your users)
+   - Click **"Create"** or **"Continue"**
+
+3. **Wait for database creation** (takes 1-2 minutes)
+
+4. **Get the connection string**:
+   - Once created, Vercel will automatically add `DATABASE_URL` to your environment variables
+   - Or you can find it in: **Settings** → **Environment Variables**
+   - The connection string will look like: `postgresql://postgres:xxxxx@db.xxxxx.supabase.co:5432/postgres`
+   - **Important**: This is your `DATABASE_URL`
+
+5. **Verify it's added**:
+   - Go to **Settings** → **Environment Variables**
+   - You should see `DATABASE_URL` already added automatically
+   - If not, see Option B below for manual setup
+   - Make sure it's enabled for all environments: ☑ Production, ☑ Preview, ☑ Development
+
+### Option B: Supabase (Manual Setup - Free Tier Available)
+
+1. **Sign up for Supabase**:
+   - Go to [supabase.com](https://supabase.com)
+   - Click **"Start your project"**
+   - Sign in with GitHub (easiest)
+
+2. **Create a new project**:
+   - Click **"New Project"**
+   - **Name**: `spotify-stats-dashboard`
+   - **Database Password**: Generate a strong password (save it!)
+   - **Region**: Choose closest to you
+   - Click **"Create new project"**
+   - Wait 2-3 minutes for setup
+
+3. **Get connection string**:
+   - Go to **Project Settings** (gear icon, bottom left)
+   - Click **"Database"** in the left menu
+   - Scroll to **"Connection string"**
+   - Select **"URI"** tab
+   - Copy the connection string
+   - It looks like: `postgresql://postgres:[YOUR-PASSWORD]@db.xxxxx.supabase.co:5432/postgres`
+   - Replace `[YOUR-PASSWORD]` with the password you created
+
+4. **Add to Vercel**:
+   - Go to Vercel → Your Project → **Settings** → **Environment Variables**
+   - Click **"Add New"**
+   - **Key**: `DATABASE_URL`
+   - **Value**: Paste the Supabase connection string
+   - **Environment**: Check all three: ☑ Production, ☑ Preview, ☑ Development
+   - Click **"Save"**
+
+### Option C: Neon (Free Tier Available - Recommended Alternative)
+
+1. **Sign up for Neon**:
+   - Go to [neon.tech](https://neon.tech)
+   - Click **"Sign Up"** and create an account
+
+2. **Create a project**:
+   - Click **"Create a project"**
+   - **Name**: `spotify-stats-dashboard`
+   - **Region**: Choose closest to you
+   - Click **"Create Project"**
+
+3. **Get connection string**:
+   - After creation, you'll see the connection string on the dashboard
+   - It looks like: `postgresql://user:password@ep-xxxxx.us-east-2.aws.neon.tech/neondb?sslmode=require`
+   - Copy it
+
+4. **Add to Vercel**:
+   - Go to Vercel → Your Project → **Settings** → **Environment Variables**
+   - Click **"Add New"**
+   - **Key**: `DATABASE_URL`
+   - **Value**: Paste the Neon connection string
+   - **Environment**: Check all three: ☑ Production, ☑ Preview, ☑ Development
+   - Click **"Save"**
+
+### Option D: Railway (Free Tier Available)
+
+1. **Sign up for Railway**:
+   - Go to [railway.app](https://railway.app)
+   - Click **"Start a New Project"**
+   - Sign in with GitHub
+
+2. **Create PostgreSQL database**:
+   - Click **"New"** → **"Database"** → **"Add PostgreSQL"**
+   - Wait for provisioning
+
+3. **Get connection string**:
+   - Click on the PostgreSQL service
+   - Go to **"Variables"** tab
+   - Find **"DATABASE_URL"** or **"POSTGRES_URL"**
+   - Copy the connection string
+
+4. **Add to Vercel**:
+   - Go to Vercel → Your Project → **Settings** → **Environment Variables**
+   - Click **"Add New"**
+   - **Key**: `DATABASE_URL`
+   - **Value**: Paste the Railway connection string
+   - **Environment**: Check all three: ☑ Production, ☑ Preview, ☑ Development
+   - Click **"Save"**
+
+## Step 5: Update Prisma Schema for PostgreSQL
+
+**Critical**: You must update your Prisma schema to use PostgreSQL instead of SQLite before the deployment will work.
+
+### 5.1 Update the Schema File
+
+1. **Open `prisma/schema.prisma`** in your local project
+
+2. **Find the `datasource db` section** (near the top):
+
+   **Current (SQLite)**:
+   ```prisma
+   datasource db {
+     provider = "sqlite"
+     url      = env("DATABASE_URL")
+   }
    ```
 
-Alternatively, add a one-time setup script or use Vercel's database UI to run migrations.
+3. **Change it to PostgreSQL**:
+   ```prisma
+   datasource db {
+     provider = "postgresql"  // Changed from "sqlite"
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+4. **Save the file**
+
+### 5.2 Commit and Push Changes
+
+1. **Commit the change**:
+   ```bash
+   git add prisma/schema.prisma
+   git commit -m "Update Prisma schema for PostgreSQL production"
+   git push
+   ```
+
+2. **Vercel will automatically detect the push** and start a new deployment
+   - You can watch it in the Vercel dashboard → **Deployments** tab
+   - This deployment should succeed now that `DATABASE_URL` is set
+
+## Step 6: Initialize the Database
+
+After the deployment succeeds, you need to create the database tables.
+
+### 6.1 Option A: Using Vercel CLI (Recommended)
+
+1. **Install Vercel CLI** (if not already installed):
+   ```bash
+   npm i -g vercel
+   ```
+
+2. **Login to Vercel**:
+   ```bash
+   vercel login
+   ```
+   - Follow the prompts to authenticate
+
+3. **Link your project**:
+   ```bash
+   cd /path/to/your/project
+   vercel link
+   ```
+   - Select your project from the list
+   - Confirm the settings
+
+4. **Pull environment variables**:
+   ```bash
+   vercel env pull .env.local
+   ```
+   - This downloads your environment variables locally
+   - Creates `.env.local` file
+
+5. **Push database schema**:
+   ```bash
+   npx prisma db push
+   ```
+   - This creates all tables in your production database
+   - You should see: "Your database is now in sync with your Prisma schema"
+
+### 6.2 Option B: Using Database UI (Alternative)
+
+If you're using Supabase, Neon, or Railway:
+
+1. **Access your database admin panel**:
+   - **Supabase**: Go to your project → **SQL Editor**
+   - **Neon**: Go to your project → **SQL Editor**
+   - **Railway**: Click on PostgreSQL → **Query** tab
+
+2. **Run Prisma migration manually** (not recommended - use Option A instead)
+
+### 6.3 Option C: Trigger via API (Quick Test)
+
+After deployment, you can trigger the first data refresh which will also initialize tables:
+
+1. **Visit your deployed site**: `https://your-project.vercel.app`
+2. **Click "Refresh Now"** button
+3. **Enter your `ADMIN_SECRET`** when prompted
+4. This will attempt to create tables and fetch initial data
+
+**Note**: This may fail if tables aren't created yet. Use Option A for reliable setup.
+
+## Step 7: Verify Deployment
+
+After the database is initialized and deployment succeeds:
+
+1. **Visit your live site**:
+   - Go to: `https://your-project.vercel.app`
+   - Or check the **Deployments** tab for the exact URL
+
+2. **Check if the site loads**:
+   - You should see the dashboard interface
+   - It may show "No data" initially - that's normal
+
+3. **Trigger initial data load**:
+   - Click the **"Refresh Now"** button
+   - Enter your `ADMIN_SECRET` when prompted
+   - Wait for the refresh to complete (may take a few minutes)
+   - The page should now show artist and track data
+
+4. **Verify everything works**:
+   - ✅ Page loads without errors
+   - ✅ Can see the dashboard UI
+   - ✅ "Refresh Now" button works
+   - ✅ Data appears after refresh
+   - ✅ Search and filters work
+   - ✅ Artist/track links work
 
 ## Step 8: Configure Cron Jobs
 

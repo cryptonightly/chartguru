@@ -28,11 +28,14 @@ class SpotifyStatsProviderImpl implements SpotifyStatsProvider {
       const trackRaws = await scrapeKworbGlobalDailyTracks();
       console.log(`Scraped ${trackRaws.length} global tracks`);
       
-      // Step 2: Store global snapshots
+      // Step 2: Clean up invalid track entries (tracks with suspiciously small daily streams or invalid names)
+      await this.cleanupInvalidTracks('global');
+      
+      // Step 3: Store global snapshots
       await this.storeArtistSnapshots(artistRaws, 'global');
       await this.storeTrackSnapshots(trackRaws, 'global');
       
-      // Step 3: Update global current stats with rank deltas
+      // Step 4: Update global current stats with rank deltas
       await this.updateArtistCurrents(artistRaws, 'global');
       await this.updateTrackCurrents(trackRaws, 'global');
       
@@ -45,11 +48,14 @@ class SpotifyStatsProviderImpl implements SpotifyStatsProvider {
       const nlTrackRaws = await scrapeKworbNetherlandsDailyTracks();
       console.log(`Scraped ${nlTrackRaws.length} Netherlands tracks`);
       
-      // Step 5: Store Netherlands snapshots
+      // Step 6: Clean up invalid track entries for Netherlands
+      await this.cleanupInvalidTracks('nl');
+      
+      // Step 7: Store Netherlands snapshots
       await this.storeArtistSnapshots(nlArtistRaws, 'nl');
       await this.storeTrackSnapshots(nlTrackRaws, 'nl');
       
-      // Step 6: Update Netherlands current stats
+      // Step 8: Update Netherlands current stats
       await this.updateArtistCurrents(nlArtistRaws, 'nl');
       await this.updateTrackCurrents(nlTrackRaws, 'nl');
       
@@ -291,6 +297,92 @@ class SpotifyStatsProviderImpl implements SpotifyStatsProvider {
       spotifyUrl: a.spotifyUrl ?? undefined,
       lastUpdated: a.lastUpdated,
     }));
+  }
+
+  /**
+   * Cleans up invalid track entries from the database
+   * Removes tracks with suspiciously small daily streams or invalid names
+   */
+  private async cleanupInvalidTracks(country: string = 'global'): Promise<void> {
+    console.log(`Cleaning up invalid tracks for ${country}...`);
+    
+    // Find and delete tracks with suspiciously small daily streams (< 100,000)
+    // These are likely invalid entries from previous scrapes
+    const invalidTracks = await prisma.trackCurrent.findMany({
+      where: {
+        country,
+        dailyStreams: {
+          lt: BigInt(100000),
+        },
+      },
+    });
+    
+    if (invalidTracks.length > 0) {
+      console.log(`Found ${invalidTracks.length} tracks with suspiciously small daily streams`);
+      
+      // Delete from TrackCurrent
+      await prisma.trackCurrent.deleteMany({
+        where: {
+          country,
+          dailyStreams: {
+            lt: BigInt(100000),
+          },
+        },
+      });
+      
+      // Also delete corresponding snapshots
+      for (const track of invalidTracks) {
+        await prisma.trackSnapshot.deleteMany({
+          where: {
+            trackName: track.trackName,
+            artistName: track.artistName,
+            country,
+          },
+        });
+      }
+    }
+    
+    // Find and delete tracks with invalid names (just symbols like "=", "+", "-", etc.)
+    const allTracks = await prisma.trackCurrent.findMany({
+      where: { country },
+    });
+    
+    const tracksToDelete = allTracks.filter(track => {
+      const trackName = track.trackName.trim();
+      // Skip if track name is just symbols or too short
+      return (
+        trackName.length < 2 ||
+        /^[=\+\-\s]+$/.test(trackName) ||
+        /^[\d\s\-=]+$/.test(trackName) ||
+        !/[a-zA-Z]/.test(trackName)
+      );
+    });
+    
+    if (tracksToDelete.length > 0) {
+      console.log(`Found ${tracksToDelete.length} tracks with invalid names`);
+      
+      for (const track of tracksToDelete) {
+        // Delete from TrackCurrent
+        await prisma.trackCurrent.deleteMany({
+          where: {
+            trackName: track.trackName,
+            artistName: track.artistName,
+            country,
+          },
+        });
+        
+        // Delete from TrackSnapshot
+        await prisma.trackSnapshot.deleteMany({
+          where: {
+            trackName: track.trackName,
+            artistName: track.artistName,
+            country,
+          },
+        });
+      }
+    }
+    
+    console.log(`Cleanup completed for ${country}`);
   }
 
   /**
