@@ -1,6 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Expose environment variables to the server runtime
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL,
+    SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID,
+    SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
+    ADMIN_SECRET: process.env.ADMIN_SECRET,
+  },
+  
   images: {
     remotePatterns: [
       {
@@ -17,6 +26,7 @@ const nextConfig = {
       },
     ],
   },
+  
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Externalize cheerio to avoid bundling issues
