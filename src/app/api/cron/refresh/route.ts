@@ -69,8 +69,20 @@ export async function POST(request: Request) {
     // Check if ADMIN_SECRET is configured
     if (!expectedSecret) {
       console.error('ADMIN_SECRET environment variable is not set');
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('ADMIN') || k.includes('SECRET')));
+      console.error('NODE_ENV:', process.env.NODE_ENV);
       return NextResponse.json(
-        { error: 'Server configuration error: ADMIN_SECRET not configured' },
+        { 
+          error: 'Server configuration error: ADMIN_SECRET not configured',
+          details: 'The ADMIN_SECRET environment variable is not available at runtime. Please verify it is set in Hostinger environment variables and restart/redeploy the app.',
+          troubleshooting: [
+            '1. Go to Hostinger → Your App → Environment Variables',
+            '2. Verify ADMIN_SECRET is set (exact name, no extra spaces)',
+            '3. Make sure it\'s enabled for Production environment',
+            '4. Redeploy/restart the app after setting the variable',
+            '5. Check Hostinger logs for environment variable loading errors'
+          ]
+        },
         { status: 500 }
       );
     }
