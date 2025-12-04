@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { scrapeKworbArtistTopSongs, scrapeKworbArtistTopVideos } from '@/lib/scraping/kworbArtistDetails';
 import { prisma } from '@/lib/db';
 
+// Force dynamic rendering since we use dynamic params and database
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ artistId: string }> | { artistId: string } }
