@@ -66,11 +66,31 @@ export async function POST(request: Request) {
     
     const expectedSecret = process.env.ADMIN_SECRET;
     
-    if (process.env.NODE_ENV === 'production' && adminSecret !== expectedSecret) {
+    // Check if ADMIN_SECRET is configured
+    if (!expectedSecret) {
+      console.error('ADMIN_SECRET environment variable is not set');
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Server configuration error: ADMIN_SECRET not configured' },
+        { status: 500 }
       );
+    }
+    
+    // In production, require authentication
+    if (process.env.NODE_ENV === 'production') {
+      if (!adminSecret) {
+        return NextResponse.json(
+          { error: 'Unauthorized: Admin secret is required' },
+          { status: 401 }
+        );
+      }
+      
+      if (adminSecret !== expectedSecret) {
+        console.error('Invalid admin secret provided');
+        return NextResponse.json(
+          { error: 'Unauthorized: Invalid admin secret' },
+          { status: 401 }
+        );
+      }
     }
     
     // Run refresh
