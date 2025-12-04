@@ -59,6 +59,7 @@ export default function Home() {
         return;
       }
 
+      console.log('Starting refresh request...');
       const response = await fetch('/api/cron/refresh', {
         method: 'POST',
         headers: {
@@ -67,7 +68,13 @@ export default function Home() {
         body: JSON.stringify({ secret: adminSecret }),
       });
 
-      const responseData = await response.json().catch(() => ({}));
+      console.log('Response status:', response.status, response.statusText);
+      const responseData = await response.json().catch((err) => {
+        console.error('Failed to parse response JSON:', err);
+        return { error: 'Failed to parse server response' };
+      });
+
+      console.log('Response data:', responseData);
 
       if (response.ok) {
         alert('Refresh started! Data will update shortly.');
@@ -77,7 +84,12 @@ export default function Home() {
         }, 5000);
       } else {
         const errorMessage = responseData.error || `HTTP ${response.status}: ${response.statusText}`;
-        console.error('Refresh failed:', errorMessage, responseData);
+        console.error('Refresh failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage,
+          fullResponse: responseData
+        });
         alert(`Refresh failed: ${errorMessage}`);
       }
     } catch (error) {
