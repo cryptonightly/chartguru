@@ -28,8 +28,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ artists });
   } catch (error) {
     console.error('Error fetching artists:', error);
+    
+    // Provide more detailed error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Check for common database errors
+    let userFriendlyMessage = 'Failed to fetch artists';
+    if (errorMessage.includes('P1001') || errorMessage.includes('Can\'t reach database')) {
+      userFriendlyMessage = 'Database connection failed. Please check DATABASE_URL environment variable.';
+    } else if (errorMessage.includes('P2025') || errorMessage.includes('Record to update not found')) {
+      userFriendlyMessage = 'Database tables may not be initialized. Please run: npx prisma db push';
+    } else if (errorMessage.includes('table') && errorMessage.includes('does not exist')) {
+      userFriendlyMessage = 'Database tables do not exist. Please initialize the database.';
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch artists' },
+      { 
+        error: userFriendlyMessage,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: 500 }
     );
   }

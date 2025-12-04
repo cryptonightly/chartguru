@@ -25,8 +25,20 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching last updated:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    let userFriendlyMessage = 'Failed to fetch last updated';
+    if (errorMessage.includes('P1001') || errorMessage.includes('Can\'t reach database')) {
+      userFriendlyMessage = 'Database connection failed. Please check DATABASE_URL environment variable.';
+    } else if (errorMessage.includes('table') && errorMessage.includes('does not exist')) {
+      userFriendlyMessage = 'Database tables do not exist. Please initialize the database.';
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch last updated' },
+      { 
+        error: userFriendlyMessage,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: 500 }
     );
   }
