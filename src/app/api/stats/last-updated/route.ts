@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+// Force dynamic rendering since we query the database
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Get the most recent update time from either artists or tracks
