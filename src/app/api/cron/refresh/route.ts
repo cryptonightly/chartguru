@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { statsProvider } from '@/lib/services/statsProvider';
 
+// Force dynamic rendering since we use request.url and headers
+export const dynamic = 'force-dynamic';
+
 /**
  * Cron endpoint for refreshing stats
  * Can be called manually with admin secret or by Vercel cron
