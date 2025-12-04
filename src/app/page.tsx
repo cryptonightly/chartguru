@@ -67,6 +67,8 @@ export default function Home() {
         body: JSON.stringify({ secret: adminSecret }),
       });
 
+      const responseData = await response.json().catch(() => ({}));
+
       if (response.ok) {
         alert('Refresh started! Data will update shortly.');
         // Refetch data after a delay
@@ -74,11 +76,14 @@ export default function Home() {
           fetchData();
         }, 5000);
       } else {
-        alert('Refresh failed. Check console for details.');
+        const errorMessage = responseData.error || `HTTP ${response.status}: ${response.statusText}`;
+        console.error('Refresh failed:', errorMessage, responseData);
+        alert(`Refresh failed: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error refreshing:', error);
-      alert('Error refreshing data');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Error refreshing data: ${errorMessage}`);
     } finally {
       setRefreshing(false);
     }
