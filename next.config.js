@@ -17,8 +17,6 @@ const nextConfig = {
       },
     ],
   },
-  // Tell Next.js not to bundle these packages for server components
-  serverComponentsExternalPackages: ['cheerio'],
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Externalize cheerio to avoid bundling issues
