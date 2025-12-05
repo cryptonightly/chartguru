@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ArtistStat } from '@/lib/types';
 import Image from 'next/image';
 import { X } from 'lucide-react';
+import ArtistHistoryChart from './ArtistHistoryChart';
 
 interface ArtistTopSong {
   trackName: string;
@@ -264,6 +265,16 @@ export default function ArtistModal({ artist, onClose }: ArtistModalProps) {
                 <p>No top videos data available</p>
               </div>
             )}
+          </div>
+
+          {/* Historical Trends */}
+          <div className="mt-8 pt-8 border-t border-gray-800">
+            <h3 className="text-xl font-bold text-white mb-4">Historical Trends</h3>
+            <ArtistHistoryChart
+              artistName={artist.name}
+              country="global"
+              days={30}
+            />
           </div>
         </div>
       </div>

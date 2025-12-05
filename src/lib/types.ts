@@ -42,3 +42,33 @@ export interface TrackStatRaw {
   totalStreams?: number;
 }
 
+// Historical data types for charts
+export interface ArtistHistoryDataPoint {
+  date: string;
+  monthlyListeners: number;
+  rank: number;
+  listenersDelta: number;
+}
+
+export interface TrackHistoryDataPoint {
+  date: string;
+  dailyStreams: number;
+  totalStreams: number | null;
+  rank: number;
+}
+
+export interface ArtistHistoryResponse {
+  artistName: string;
+  country: string;
+  history: ArtistHistoryDataPoint[];
+  dataPoints: number;
+}
+
+export interface TrackHistoryResponse {
+  trackName: string;
+  artistName: string;
+  country: string;
+  history: TrackHistoryDataPoint[];
+  dataPoints: number;
+}
+

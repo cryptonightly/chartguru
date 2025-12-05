@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { TrackStat } from '@/lib/types';
 import Image from 'next/image';
+import TrackModal from './TrackModal';
 
 interface TrackTableProps {
   tracks: TrackStat[];
@@ -15,6 +16,7 @@ export default function TrackTable({ tracks }: TrackTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('rank');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedTrack, setSelectedTrack] = useState<TrackStat | null>(null);
 
   // Filter and sort tracks
   const filteredAndSorted = useMemo(() => {
@@ -130,7 +132,8 @@ export default function TrackTable({ tracks }: TrackTableProps) {
               {filteredAndSorted.map((track) => (
                 <tr
                   key={track.trackId || `${track.name}-${track.mainArtistName}`}
-                  className="border-t border-gray-800 hover:bg-gray-800 transition-colors"
+                  className="border-t border-gray-800 hover:bg-gray-800 transition-colors cursor-pointer"
+                  onClick={() => setSelectedTrack(track)}
                 >
                   <td className="px-4 py-3 font-semibold">#{track.rank}</td>
                   <td className="px-4 py-3">
@@ -175,6 +178,12 @@ export default function TrackTable({ tracks }: TrackTableProps) {
           </table>
         </div>
       </div>
+
+      {/* Track Modal */}
+      <TrackModal
+        track={selectedTrack}
+        onClose={() => setSelectedTrack(null)}
+      />
     </div>
   );
 }
