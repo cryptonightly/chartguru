@@ -101,9 +101,9 @@ export default function TrackTable({ tracks }: TrackTableProps) {
       </div>
 
       <div className="bg-gray-900 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[800px] overflow-y-auto">
           <table className="w-full">
-            <thead className="bg-gray-800">
+            <thead className="bg-gray-800 sticky top-0 z-10">
               <tr>
                 <th
                   className="px-4 py-3 text-left cursor-pointer hover:bg-gray-700"
