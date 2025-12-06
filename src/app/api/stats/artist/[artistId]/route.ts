@@ -66,8 +66,32 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching artist details:', error);
+    
+    // Enhanced error logging for database connection issues
+    if (error instanceof Error) {
+      // Log Prisma-specific errors
+      if ('code' in error) {
+        console.error('Prisma error code:', (error as any).code);
+        console.error('Prisma error meta:', (error as any).meta);
+      }
+      
+      // Log connection-related errors
+      if (error.message.includes('Can\'t reach database') || 
+          error.message.includes('P1001') ||
+          error.message.includes('connection')) {
+        console.error('Database connection error detected');
+        console.error('DATABASE_URL is set:', !!process.env.DATABASE_URL);
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch artist details' },
+      { 
+        error: 'Failed to fetch artist details',
+        // Include error details in development for debugging
+        ...(process.env.NODE_ENV === 'development' && {
+          details: error instanceof Error ? error.message : 'Unknown error'
+        })
+      },
       { status: 500 }
     );
   }
